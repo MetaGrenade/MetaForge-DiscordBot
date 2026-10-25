@@ -17,6 +17,7 @@ abstract class TestCase extends Orchestra
 
     protected function defineEnvironment($app): void
     {
+        config()->set('auth.defaults.guard', 'web');
         config()->set('discord.user_model', TestUser::class);
         config()->set('discord.social_account_model', TestSocialAccount::class);
         config()->set('discord.role_sync_enabled', true);
