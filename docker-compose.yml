@@ -1,0 +1,17 @@
+# MetaForge Discord gateway bot (optional local/production sidecar).
+# Laravel + queues stay on the MetaForge app host — this file only runs `bot/`.
+#
+# Usage:
+#   cp bot/.env.example bot/.env   # fill secrets (see bot/README.md)
+#   docker compose up --build -d
+#   docker compose logs -f bot
+
+services:
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    env_file:
+      - ./bot/.env
+    restart: unless-stopped
+    # Discord gateway is outbound-only; no published ports required.
