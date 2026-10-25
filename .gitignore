@@ -1,0 +1,10 @@
+/vendor/
+/node_modules/
+/.env
+/.env.local
+/laravel/vendor/
+/laravel/.phpunit.cache/
+/bot/node_modules/
+/bot/dist/
+/bot/.env
+*.log
