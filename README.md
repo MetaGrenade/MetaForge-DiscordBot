@@ -11,6 +11,8 @@ Discord companion for [MetaForge (laravel-vue)](https://github.com/MetaGrenade/l
 
 Project architecture and roadmap: see the MetaForge Project store document `docs/discord-bot-plan.md`.
 
+End-to-end operator checklist (Developer Portal, secrets, migrations, queue, bot, ACP): **`docs/discord-companion-setup.md`** in the MetaForge Project store.
+
 ## Quick start
 
 ### 1. Install the Laravel package into MetaForge
@@ -104,11 +106,45 @@ DISCORD_ADMIN_ROUTE_PREFIX=discord/admin
 DISCORD_USER_ROUTE_PREFIX=discord/user
 ```
 
+## Production setup
+
+Use this after the Laravel package is installed in MetaForge (laravel-vue PR #309 or equivalent).
+
+1. **Validate environment** (from this repo root):
+
+   ```bash
+   cp bot/.env.example bot/.env
+   # Fill bot/.env and MetaForge .env — Caleb supplies all Discord secrets
+   make setup-check
+   ```
+
+2. **MetaForge**: queue worker + scheduler running; `php artisan discord:ping` succeeds; optional `php artisan discord:sync-roles --dry-run`.
+
+3. **Gateway bot** — pick one:
+
+   | Method | Commands |
+   |--------|----------|
+   | Node (VM) | `make bot-install && make bot-build && make bot-start` |
+   | Dev watch | `make bot-dev` |
+   | Docker | `docker compose up --build -d` |
+
+4. **Discord**: `/ping` in guild; configure first role mapping in ACP ([laravel-vue integration](docs/laravel-vue-integration.md)); **restart the bot** after deploy so `/link` and `/roles` register.
+
+Bot-only details: [bot/README.md](bot/README.md). The bot does **not** need Redis; MetaForge uses your existing queue driver for sync jobs.
+
 ## Development (this repository)
 
 ```bash
+make test
+# or:
 cd laravel && composer install && composer test
 cd ../bot && npm install && npm run typecheck
+```
+
+First-time helper:
+
+```bash
+make setup    # npm ci in bot/ + setup-check.sh
 ```
 
 ## License
