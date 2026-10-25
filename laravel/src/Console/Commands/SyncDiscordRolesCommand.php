@@ -12,7 +12,9 @@ class SyncDiscordRolesCommand extends Command
     protected $signature = 'discord:sync-roles
                             {--user= : Sync a single user id}
                             {--dry-run : Compute changes without calling Discord}
-                            {--sync : Run synchronously instead of dispatching a queue job}';
+                            {--sync : Run synchronously instead of dispatching a queue job}
+                            {--stale : Sync linked users whose last sync is older than the stale window}
+                            {--stale-hours= : Override config discord.stale_sync_hours}';
 
     protected $description = 'Sync Spatie roles to Discord for linked members';
 
@@ -26,7 +28,15 @@ class SyncDiscordRolesCommand extends Command
                 return $this->syncOne($sync, (int) $userId, $dryRun);
             }
 
-            $counts = $sync->syncAllUsers($dryRun);
+            if ($this->option('stale')) {
+                $hours = $this->option('stale-hours');
+                $counts = $sync->syncStaleUsers(
+                    $dryRun,
+                    $hours !== null && $hours !== '' ? (int) $hours : null,
+                );
+            } else {
+                $counts = $sync->syncAllUsers($dryRun);
+            }
         } catch (DiscordApiException $exception) {
             $this->components->error($exception->getMessage());
 

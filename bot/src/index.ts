@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { Client, Events, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from 'discord.js';
+import { postSignedMetaForgeRequest } from './metaforgeApi.js';
 import { postMetaForgeEvent } from './metaforgeWebhook.js';
 
 const botToken = process.env.DISCORD_BOT_TOKEN;
@@ -19,6 +20,19 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
 });
 
+type LinkStatusResponse = {
+  linked: boolean;
+  discord_user_id: string;
+  user?: { id: number; name: string; email?: string | null };
+};
+
+type RolesResponse = {
+  linked: boolean;
+  discord_user_id: string;
+  spatie_roles?: string[];
+  mapped_discord_roles?: string[];
+};
+
 async function registerCommands(): Promise<void> {
   if (!applicationId || !guildId) {
     console.warn('Skipping slash command registration (DISCORD_APPLICATION_ID or DISCORD_GUILD_ID missing).');
@@ -27,6 +41,12 @@ async function registerCommands(): Promise<void> {
 
   const commands = [
     new SlashCommandBuilder().setName('ping').setDescription('Check whether the MetaForge Discord bot is online.'),
+    new SlashCommandBuilder()
+      .setName('link')
+      .setDescription('Show whether your Discord account is linked to MetaForge.'),
+    new SlashCommandBuilder()
+      .setName('roles')
+      .setDescription('Show your MetaForge roles and mapped Discord roles (read-only).'),
   ].map((command) => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(discordToken);
@@ -74,6 +94,62 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === 'ping') {
     await interaction.reply({ content: 'MetaForge Discord bot is online.', ephemeral: true });
+    return;
+  }
+
+  if (interaction.commandName === 'link' || interaction.commandName === 'roles') {
+    if (!metaforgeWebhookUrl || !metaforgeWebhookSecret) {
+      await interaction.reply({
+        content: 'MetaForge API is not configured on this bot (METAFORGE_WEBHOOK_URL / METAFORGE_WEBHOOK_SECRET).',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+      if (interaction.commandName === 'link') {
+        const data = await postSignedMetaForgeRequest<LinkStatusResponse>(
+          metaforgeWebhookUrl,
+          metaforgeWebhookSecret,
+          '/discord/bot/members/link-status',
+          { discord_user_id: interaction.user.id },
+        );
+
+        if (!data.linked) {
+          await interaction.editReply(
+            'Your Discord account is **not linked** to MetaForge. Sign in at the site with Discord OAuth to link.',
+          );
+          return;
+        }
+
+        const label = data.user?.name ?? `user #${data.user?.id ?? '?'}`;
+        await interaction.editReply(`Your Discord account is linked to MetaForge as **${label}**.`);
+        return;
+      }
+
+      const data = await postSignedMetaForgeRequest<RolesResponse>(
+        metaforgeWebhookUrl,
+        metaforgeWebhookSecret,
+        '/discord/bot/members/roles',
+        { discord_user_id: interaction.user.id },
+      );
+
+      if (!data.linked) {
+        await interaction.editReply('Link your Discord account via MetaForge OAuth before checking roles.');
+        return;
+      }
+
+      const spatie = data.spatie_roles?.length ? data.spatie_roles.join(', ') : '(none)';
+      const mapped = data.mapped_discord_roles?.length ? data.mapped_discord_roles.join(', ') : '(none)';
+      await interaction.editReply(
+        `**MetaForge roles:** ${spatie}\n**Mapped Discord role IDs:** ${mapped}\n\nRole changes are applied by MetaForge; this command is read-only.`,
+      );
+    } catch (error) {
+      console.error(`Failed ${interaction.commandName} command:`, error);
+      await interaction.editReply('Could not reach MetaForge. Try again later or contact staff.');
+    }
   }
 });
 

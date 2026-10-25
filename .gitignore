@@ -4,6 +4,7 @@
 /.env.local
 /laravel/vendor/
 /laravel/.phpunit.cache/
+/laravel/.phpunit.result.cache
 /bot/node_modules/
 /bot/dist/
 /bot/.env

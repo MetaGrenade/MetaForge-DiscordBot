@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use MetaForge\Discord\Models\DiscordRoleMapping;
 use MetaForge\Discord\Models\DiscordSyncRun;
+use MetaForge\Discord\Models\DiscordUserSyncState;
 
 class RoleSyncResult
 {
@@ -72,41 +73,163 @@ class RoleSyncService
         return $counts;
     }
 
+    /**
+     * @return array{synced: int, skipped: int, failed: int, processed: int}
+     */
+    public function syncStaleUsers(bool $dryRun = false, ?int $hours = null): array
+    {
+        $hours = $hours ?? (int) config('discord.stale_sync_hours', 24);
+        $threshold = now()->subHours($hours);
+
+        $run = DiscordSyncRun::query()->create([
+            'trigger' => DiscordSyncRun::TRIGGER_SCHEDULE,
+            'status' => DiscordSyncRun::STATUS_RUNNING,
+            'meta' => ['stale_hours' => $hours],
+        ]);
+
+        $counts = ['synced' => 0, 'skipped' => 0, 'failed' => 0, 'processed' => 0];
+
+        try {
+            foreach ($this->staleLinkedUserIds($threshold) as $userId) {
+                $userClass = config('discord.user_model');
+                $user = $userClass::query()->find($userId);
+
+                if ($user === null) {
+                    continue;
+                }
+
+                $counts['processed']++;
+                $result = $this->syncUser($user, $dryRun);
+
+                match ($result->status) {
+                    'synced' => $counts['synced']++,
+                    'skipped' => $counts['skipped']++,
+                    default => $counts['failed']++,
+                };
+            }
+
+            $run->fill([
+                'status' => DiscordSyncRun::STATUS_OK,
+                'users_processed' => $counts['processed'],
+                'users_synced' => $counts['synced'],
+                'users_skipped' => $counts['skipped'],
+                'users_failed' => $counts['failed'],
+                'finished_at' => now(),
+            ])->save();
+        } catch (\Throwable $exception) {
+            $run->fill([
+                'status' => DiscordSyncRun::STATUS_FAILED,
+                'error' => $exception->getMessage(),
+                'finished_at' => now(),
+            ])->save();
+
+            throw $exception;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    public function staleLinkedUserIds(?\Illuminate\Support\Carbon $threshold = null): \Illuminate\Support\Collection
+    {
+        $threshold ??= now()->subHours((int) config('discord.stale_sync_hours', 24));
+
+        $socialClass = config('discord.social_account_model');
+        $provider = (string) config('discord.social_provider');
+
+        $linkedUserIds = $socialClass::query()
+            ->where('provider', $provider)
+            ->pluck('user_id');
+
+        if ($linkedUserIds->isEmpty()) {
+            return collect();
+        }
+
+        $syncedRecently = DiscordUserSyncState::query()
+            ->whereIn('user_id', $linkedUserIds)
+            ->where('last_synced_at', '>=', $threshold)
+            ->pluck('user_id');
+
+        return $linkedUserIds->diff($syncedRecently)->values();
+    }
+
     public function syncUser(Model $user, bool $dryRun = false): RoleSyncResult
     {
         if (! config('discord.role_sync_enabled')) {
-            return new RoleSyncResult('skipped', 'Role sync is disabled.');
+            $result = new RoleSyncResult('skipped', 'Role sync is disabled.');
+            $this->recordSyncState($user, $result);
+
+            return $result;
         }
 
         $guildId = (string) config('discord.guild_id');
         if ($guildId === '') {
-            return new RoleSyncResult('skipped', 'DISCORD_GUILD_ID is not configured.');
+            $result = new RoleSyncResult('skipped', 'DISCORD_GUILD_ID is not configured.');
+            $this->recordSyncState($user, $result);
+
+            return $result;
         }
 
         $discordUserId = $this->resolveDiscordUserId($user);
         if ($discordUserId === null) {
-            return new RoleSyncResult('skipped', 'User has no linked Discord account.');
+            $result = new RoleSyncResult('skipped', 'User has no linked Discord account.');
+            $this->recordSyncState($user, $result);
+
+            return $result;
         }
 
         $desiredRoles = $this->desiredDiscordRoleIds($user);
         if ($desiredRoles->isEmpty()) {
-            return new RoleSyncResult('skipped', 'No mapped Spatie roles for this user.');
+            $result = new RoleSyncResult('skipped', 'No mapped Spatie roles for this user.');
+            $this->recordSyncState($user, $result);
+
+            return $result;
         }
 
         if ($dryRun) {
-            return new RoleSyncResult('synced', 'Dry run — would apply '.$desiredRoles->count().' role(s).');
+            $result = new RoleSyncResult('synced', 'Dry run — would apply '.$desiredRoles->count().' role(s).');
+            $this->recordSyncState($user, $result);
+
+            return $result;
         }
 
-        $member = $this->client->getGuildMember($guildId, $discordUserId);
-        if ($member === null) {
-            return new RoleSyncResult('failed', 'User is not a member of the configured guild.');
+        try {
+            $member = $this->client->getGuildMember($guildId, $discordUserId);
+            if ($member === null) {
+                $result = new RoleSyncResult('failed', 'User is not a member of the configured guild.');
+                $this->recordSyncState($user, $result);
+
+                return $result;
+            }
+
+            $finalRoles = $this->mergeRoles($member, $desiredRoles);
+
+            $this->client->modifyGuildMemberRoles($guildId, $discordUserId, $finalRoles->all());
+
+            $result = new RoleSyncResult('synced');
+            $this->recordSyncState($user, $result);
+
+            return $result;
+        } catch (\Throwable $exception) {
+            $result = new RoleSyncResult('failed', $exception->getMessage());
+            $this->recordSyncState($user, $result);
+
+            throw $exception;
         }
+    }
 
-        $finalRoles = $this->mergeRoles($member, $desiredRoles);
-
-        $this->client->modifyGuildMemberRoles($guildId, $discordUserId, $finalRoles->all());
-
-        return new RoleSyncResult('synced');
+    private function recordSyncState(Model $user, RoleSyncResult $result): void
+    {
+        DiscordUserSyncState::query()->updateOrCreate(
+            ['user_id' => $user->getKey()],
+            [
+                'last_status' => $result->status,
+                'last_message' => $result->message,
+                'last_synced_at' => now(),
+            ],
+        );
     }
 
     private function resolveDiscordUserId(Model $user): ?string

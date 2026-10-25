@@ -2,6 +2,7 @@
 
 namespace MetaForge\Discord;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -10,6 +11,8 @@ use MetaForge\Discord\Console\Commands\SyncDiscordRolesCommand;
 use MetaForge\Discord\Http\Middleware\VerifyDiscordBotRequest;
 use MetaForge\Discord\Listeners\QueueDiscordRoleSync;
 use MetaForge\Discord\Services\DiscordApiClient;
+use MetaForge\Discord\Services\DiscordMemberLookupService;
+use MetaForge\Discord\Services\DiscordNotificationPreferenceService;
 use MetaForge\Discord\Services\RoleSyncService;
 use Spatie\Permission\Events\RoleAttached;
 use Spatie\Permission\Events\RoleDetached;
@@ -22,6 +25,8 @@ class DiscordServiceProvider extends ServiceProvider
 
         $this->app->singleton(DiscordApiClient::class, fn () => DiscordApiClient::fromConfig());
         $this->app->singleton(RoleSyncService::class);
+        $this->app->singleton(DiscordNotificationPreferenceService::class);
+        $this->app->singleton(DiscordMemberLookupService::class);
     }
 
     public function boot(): void
@@ -47,5 +52,18 @@ class DiscordServiceProvider extends ServiceProvider
         /** @var Router $router */
         $router = $this->app->make(Router::class);
         $router->aliasMiddleware('discord.bot', VerifyDiscordBotRequest::class);
+
+        $this->app->booted(function () {
+            if (! config('discord.schedule_stale_sync', true)) {
+                return;
+            }
+
+            $schedule = $this->app->make(Schedule::class);
+
+            $schedule->command('discord:sync-roles --stale')
+                ->hourly()
+                ->when(fn () => (bool) config('discord.role_sync_enabled'))
+                ->withoutOverlapping();
+        });
     }
 }
