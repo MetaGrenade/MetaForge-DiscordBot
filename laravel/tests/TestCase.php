@@ -24,12 +24,12 @@ abstract class TestCase extends Orchestra
         config()->set('discord.preserve_unmapped_roles', true);
         config()->set('permission.models.role', \Spatie\Permission\Models\Role::class);
         config()->set('permission.models.permission', \Spatie\Permission\Models\Permission::class);
+        config()->set('permission.testing', true);
     }
 
     protected function defineDatabaseMigrations(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadMigrationsFrom(__DIR__.'/migrations');
-        $this->loadMigrationsFrom(__DIR__.'/../vendor/spatie/laravel-permission/database/migrations');
     }
 }
