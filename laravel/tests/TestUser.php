@@ -10,6 +10,8 @@ class TestUser extends Model
 {
     use HasRoles;
 
+    protected $guard_name = 'web';
+
     protected $table = 'test_users';
 
     protected $fillable = ['name', 'email'];
