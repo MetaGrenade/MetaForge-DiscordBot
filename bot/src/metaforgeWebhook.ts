@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import { postSignedMetaForgeRequest } from './metaforgeApi.js';
 
 export async function postMetaForgeEvent(
   baseUrl: string,
@@ -6,22 +6,5 @@ export async function postMetaForgeEvent(
   type: string,
   payload: Record<string, unknown>,
 ): Promise<void> {
-  const body = JSON.stringify({ type, payload });
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  const signature = crypto.createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
-
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/discord/bot/events`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Discord-Bot-Timestamp': timestamp,
-      'X-Discord-Bot-Signature': signature,
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`MetaForge webhook failed (${response.status}): ${text}`);
-  }
+  await postSignedMetaForgeRequest(baseUrl, secret, '/discord/bot/events', { type, payload });
 }

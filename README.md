@@ -51,7 +51,7 @@ DISCORD_ROLE_SYNC_ENABLED=true
 
 Users must link Discord via MetaForge’s existing OAuth (`social_accounts` with `provider = discord`).
 
-Seed role mappings in `discord_role_mappings` (Spatie role name → Discord role snowflake).
+Role mappings can be seeded manually or managed via the **ACP API** (see [laravel-vue integration](docs/laravel-vue-integration.md)).
 
 ### 3. Run the bot
 
@@ -64,7 +64,16 @@ npm run dev
 
 Set `METAFORGE_WEBHOOK_URL` to your app base URL (the package exposes `POST /discord/bot/events`).
 
-### 4. Notifications
+### 4. Operator tools (phase 2)
+
+- **Admin JSON API** (`/discord/admin/*`): role mapping CRUD, sync run history, manual per-user sync, guild role list for pickers.
+- **Stale sync**: `php artisan discord:sync-roles --stale` (optional `--stale-hours=`); scheduled hourly when `DISCORD_SCHEDULE_STALE_SYNC=true`.
+- **Slash commands**: `/link` (OAuth link status), `/roles` (read-only Spatie + mapped Discord roles).
+- **User notification opt-in**: `/discord/user/notification-preferences` + `DiscordNotifiableNotification` on notification classes.
+
+MetaForge ACP wiring steps: [docs/laravel-vue-integration.md](docs/laravel-vue-integration.md).
+
+### 5. Notifications
 
 Register the channel in MetaForge and implement `toDiscord()` on notifications:
 
@@ -84,6 +93,15 @@ public function toDiscord(object $notifiable): array
         'embeds' => [['title' => 'Update', 'description' => '…']],
     ];
 }
+```
+
+Optional env (phase 2):
+
+```env
+DISCORD_STALE_SYNC_HOURS=24
+DISCORD_SCHEDULE_STALE_SYNC=true
+DISCORD_ADMIN_ROUTE_PREFIX=discord/admin
+DISCORD_USER_ROUTE_PREFIX=discord/user
 ```
 
 ## Development (this repository)

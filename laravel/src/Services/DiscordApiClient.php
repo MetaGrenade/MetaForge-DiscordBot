@@ -58,6 +58,18 @@ class DiscordApiClient
         return $this->decode($response);
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listGuildRoles(string $guildId): array
+    {
+        $response = $this->request()->get("/guilds/{$guildId}/roles");
+        /** @var list<array<string, mixed>> $roles */
+        $roles = $this->decode($response);
+
+        return $roles;
+    }
+
     private function request(): PendingRequest
     {
         if (! $this->botToken) {

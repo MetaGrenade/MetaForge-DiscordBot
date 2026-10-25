@@ -18,6 +18,8 @@ class DiscordSyncRun extends Model
 
     public const TRIGGER_BOT = 'bot';
 
+    public const TRIGGER_SCHEDULE = 'schedule';
+
     protected $fillable = [
         'trigger',
         'status',
