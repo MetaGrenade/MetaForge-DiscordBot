@@ -6,6 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use MetaForge\Discord\Jobs\ApplyDiscordInboundRolesJob;
+use MetaForge\Discord\Jobs\SendDiscordWelcomeMessageJob;
 use MetaForge\Discord\Models\DiscordSyncRun;
 use MetaForge\Discord\Services\DiscordInboundRoleSyncService;
 
@@ -24,7 +25,7 @@ class BotEventController
 
         match ($type) {
             'bot.ready' => Log::info('Discord bot connected', $payload),
-            'guild.member.add' => Log::info('Discord member joined guild', $payload),
+            'guild.member.add' => $this->handleMemberAdd($payload),
             'guild.member.update' => $this->handleMemberUpdate($payload),
             'support.ticket.thread_created' => Log::info('Support ticket thread hook (future mirroring)', $payload),
             default => Log::debug('Discord bot event received', ['type' => $type, 'payload' => $payload]),
@@ -41,6 +42,26 @@ class BotEventController
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function handleMemberAdd(array $payload): void
+    {
+        Log::info('Discord member joined guild', ['guild_id' => $payload['guild_id'] ?? null]);
+
+        $discordUserId = isset($payload['discord_user_id']) ? (string) $payload['discord_user_id'] : '';
+        if ($discordUserId === '') {
+            return;
+        }
+
+        if (config('discord.welcome_enabled', false)) {
+            SendDiscordWelcomeMessageJob::dispatch($discordUserId);
+        }
     }
 
     /**

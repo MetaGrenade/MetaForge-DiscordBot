@@ -47,6 +47,12 @@ async function registerCommands(): Promise<void> {
     new SlashCommandBuilder()
       .setName('roles')
       .setDescription('Show your MetaForge roles and mapped Discord roles (read-only).'),
+    new SlashCommandBuilder()
+      .setName('ticket')
+      .setDescription('Staff: fetch a short support ticket summary from MetaForge.')
+      .addIntegerOption((option) =>
+        option.setName('id').setDescription('MetaForge support ticket ID').setRequired(true),
+      ),
   ].map((command) => command.toJSON());
 
   const rest = new REST({ version: '10' }).setToken(discordToken);
@@ -122,6 +128,49 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (interaction.commandName === 'ping') {
     await interaction.reply({ content: 'MetaForge Discord bot is online.', ephemeral: true });
+    return;
+  }
+
+  if (interaction.commandName === 'ticket') {
+    if (!metaforgeWebhookUrl || !metaforgeWebhookSecret) {
+      await interaction.reply({
+        content: 'MetaForge API is not configured on this bot.',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const ticketId = interaction.options.getInteger('id', true);
+    const memberRoleIds =
+      interaction.member && 'roles' in interaction.member && 'cache' in interaction.member.roles
+        ? interaction.member.roles.cache.map((role) => role.id)
+        : [];
+
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+      const data = await postSignedMetaForgeRequest<{ ok: boolean; summary?: string; message?: string }>(
+        metaforgeWebhookUrl,
+        metaforgeWebhookSecret,
+        '/discord/bot/support-tickets/summary',
+        {
+          discord_user_id: interaction.user.id,
+          ticket_id: ticketId,
+          member_role_ids: memberRoleIds,
+        },
+      );
+
+      if (!data.ok) {
+        await interaction.editReply(data.message ?? 'Could not load ticket summary.');
+        return;
+      }
+
+      await interaction.editReply(data.summary ?? 'No summary returned.');
+    } catch (error) {
+      console.error('Failed /ticket command:', error);
+      await interaction.editReply('Could not reach MetaForge or you are not authorized.');
+    }
+
     return;
   }
 

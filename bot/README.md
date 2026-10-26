@@ -1,6 +1,6 @@
 # MetaForge Discord gateway bot
 
-Long-lived [discord.js](https://discord.js.org/) v14 process: guild slash commands (`/ping`, `/link`, `/roles`), forwards `ready`, `guildMemberAdd`, and **`guildMemberUpdate`** (role changes) to MetaForge via signed HTTP.
+Long-lived [discord.js](https://discord.js.org/) v14 process: guild slash commands (`/ping`, `/link`, `/roles`, staff `/ticket`), forwards `ready`, `guildMemberAdd`, and **`guildMemberUpdate`** (role changes) to MetaForge via signed HTTP.
 
 Laravel role sync and notifications run in **MetaForge** (package `metagrenade/metaforge-discord`), not in this folder.
 
