@@ -3,6 +3,7 @@
 namespace MetaForge\Discord\Services;
 
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 
@@ -80,11 +81,26 @@ class DiscordApiClient
             ->acceptJson()
             ->asJson()
             ->withToken($this->botToken, 'Bot')
-            ->retry(3, 500, function ($exception, $request) {
-                $response = $exception->response ?? null;
+            ->retry(
+                times: (int) config('discord.api_retry_times', 5),
+                sleepMilliseconds: function (int $attempt, \Throwable $exception) {
+                    if ($exception instanceof RequestException) {
+                        $response = $exception->response;
 
-                return $response && $response->status() === 429;
-            }, throw: false);
+                        if ($response->status() === 429) {
+                            $retryAfter = $response->header('Retry-After');
+                            $seconds = is_numeric($retryAfter) ? (int) $retryAfter : min(30, $attempt * 2);
+
+                            return max(1000, $seconds * 1000);
+                        }
+                    }
+
+                    return min(8000, 500 * $attempt);
+                },
+                when: fn (\Throwable $exception) => $exception instanceof RequestException
+                    && $exception->response->status() === 429,
+                throw: false,
+            );
     }
 
     /**

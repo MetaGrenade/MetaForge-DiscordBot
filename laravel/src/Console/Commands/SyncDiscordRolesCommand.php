@@ -30,12 +30,17 @@ class SyncDiscordRolesCommand extends Command
 
             if ($this->option('stale')) {
                 $hours = $this->option('stale-hours');
-                $counts = $sync->syncStaleUsers(
-                    $dryRun,
-                    $hours !== null && $hours !== '' ? (int) $hours : null,
-                );
-            } else {
+                $staleHours = $hours !== null && $hours !== '' ? (int) $hours : null;
+
+                if ($dryRun || $this->option('sync')) {
+                    $counts = $sync->syncStaleUsers($dryRun, $staleHours);
+                } else {
+                    $counts = $sync->dispatchStaleSyncJobs($staleHours);
+                }
+            } elseif ($dryRun || $this->option('sync')) {
                 $counts = $sync->syncAllUsers($dryRun);
+            } else {
+                $counts = $sync->dispatchSyncJobsForLinkedUsers();
             }
         } catch (DiscordApiException $exception) {
             $this->components->error($exception->getMessage());

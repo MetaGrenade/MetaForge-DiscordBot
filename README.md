@@ -1,6 +1,6 @@
 # MetaForge Discord Bot
 
-Discord companion for [MetaForge (laravel-vue)](https://github.com/MetaGrenade/laravel-vue): **role sync** (Spatie → Discord), Laravel **notifications** via webhooks, and a **gateway bot** for slash commands and guild events.
+Discord companion for [MetaForge (laravel-vue)](https://github.com/MetaGrenade/laravel-vue): **bidirectional-aware role sync**, Laravel **notifications** via webhooks, and a **gateway bot** for slash commands and guild events.
 
 ## Packages
 
@@ -66,7 +66,23 @@ npm run dev
 
 Set `METAFORGE_WEBHOOK_URL` to your app base URL (the package exposes `POST /discord/bot/events`).
 
-### 4. Operator tools (phase 2)
+### 4. Discord → app role sync (phase 3)
+
+- Gateway forwards **`guildMemberUpdate`** as `guild.member.update` when mapped Discord roles change.
+- Enable per mapping: `sync_from_discord=true` on `discord_role_mappings`.
+- Conflict policy: `DISCORD_INBOUND_CONFLICT_POLICY=discord_wins` (default) or `app_wins`.
+- Security overview: [docs/security.md](docs/security.md).
+
+```env
+DISCORD_SYNC_FROM_DISCORD_ENABLED=true
+DISCORD_INBOUND_CONFLICT_POLICY=discord_wins
+DISCORD_ROLE_SYNC_CHUNK_SIZE=100
+DISCORD_API_RATE_LIMIT_PER_MINUTE=50
+```
+
+Bulk outbound sync (`php artisan discord:sync-roles`) **queues** one job per linked user by default; use `--sync` to run in-process (dry-run always in-process).
+
+### 5. Operator tools (phase 2)
 
 - **Admin JSON API** (`/discord/admin/*`): role mapping CRUD, sync run history, manual per-user sync, guild role list for pickers.
 - **Stale sync**: `php artisan discord:sync-roles --stale` (optional `--stale-hours=`); scheduled hourly when `DISCORD_SCHEDULE_STALE_SYNC=true`.
@@ -75,7 +91,11 @@ Set `METAFORGE_WEBHOOK_URL` to your app base URL (the package exposes `POST /dis
 
 MetaForge ACP wiring steps: [docs/laravel-vue-integration.md](docs/laravel-vue-integration.md).
 
-### 5. Notifications
+### 6. Support ticket hook (stub)
+
+See [docs/support-tickets.md](docs/support-tickets.md) for optional `support.ticket.*` wiring and bot event types.
+
+### 7. Notifications
 
 Register the channel in MetaForge and implement `toDiscord()` on notifications:
 
