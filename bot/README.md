@@ -1,6 +1,6 @@
 # MetaForge Discord gateway bot
 
-Long-lived [discord.js](https://discord.js.org/) v14 process: guild slash commands (`/ping`, `/link`, `/roles`), forwards `ready` and `guildMemberAdd` to MetaForge via signed HTTP.
+Long-lived [discord.js](https://discord.js.org/) v14 process: guild slash commands (`/ping`, `/link`, `/roles`), forwards `ready`, `guildMemberAdd`, and **`guildMemberUpdate`** (role changes) to MetaForge via signed HTTP.
 
 Laravel role sync and notifications run in **MetaForge** (package `metagrenade/metaforge-discord`), not in this folder.
 
@@ -72,4 +72,13 @@ After deploy or command changes, **restart** this process so guild slash command
 | POST | `/discord/bot/members/link-status` |
 | POST | `/discord/bot/members/roles` |
 
-All requests use HMAC headers documented in the Laravel package middleware.
+### Bot → Laravel event types
+
+| `type` | Source |
+|--------|--------|
+| `bot.ready` | Client ready |
+| `guild.member.add` | Member joined guild |
+| `guild.member.update` | Member roles changed (phase 3 inbound sync) |
+| `support.ticket.thread_created` | Reserved for future thread mirroring (logged only) |
+
+All requests use HMAC headers documented in the Laravel package middleware and [docs/security.md](../docs/security.md).

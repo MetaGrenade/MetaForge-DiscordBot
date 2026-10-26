@@ -4,6 +4,7 @@ namespace MetaForge\Discord\Services;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use MetaForge\Discord\Jobs\SyncUserDiscordRolesJob;
 use MetaForge\Discord\Models\DiscordRoleMapping;
 use MetaForge\Discord\Models\DiscordSyncRun;
 use MetaForge\Discord\Models\DiscordUserSyncState;
@@ -21,6 +22,112 @@ class RoleSyncService
     public function __construct(
         private readonly DiscordApiClient $client,
     ) {}
+
+    /**
+     * Queue outbound sync jobs for linked Discord users (chunked; respects unique job dedupe).
+     *
+     * @return array{queued: int, processed: int}
+     */
+    public function dispatchSyncJobsForLinkedUsers(string $trigger = DiscordSyncRun::TRIGGER_COMMAND): array
+    {
+        $run = DiscordSyncRun::query()->create([
+            'trigger' => $trigger,
+            'status' => DiscordSyncRun::STATUS_RUNNING,
+            'meta' => ['mode' => 'queued'],
+        ]);
+
+        $counts = ['queued' => 0, 'processed' => 0];
+        $chunkSize = max(1, (int) config('discord.role_sync_chunk_size', 100));
+        $userClass = config('discord.user_model');
+        $socialClass = config('discord.social_account_model');
+        $provider = (string) config('discord.social_provider');
+
+        try {
+            $socialClass::query()
+                ->where('provider', $provider)
+                ->orderBy('user_id')
+                ->chunk($chunkSize, function ($accounts) use (&$counts, $userClass) {
+                    foreach ($accounts as $account) {
+                        $counts['processed']++;
+                        $user = $userClass::query()->find($account->user_id);
+
+                        if ($user === null) {
+                            continue;
+                        }
+
+                        SyncUserDiscordRolesJob::dispatchForUser($user);
+                        $counts['queued']++;
+                    }
+                });
+
+            $run->fill([
+                'status' => DiscordSyncRun::STATUS_OK,
+                'users_processed' => $counts['processed'],
+                'users_synced' => $counts['queued'],
+                'meta' => ['mode' => 'queued', 'jobs_dispatched' => $counts['queued']],
+                'finished_at' => now(),
+            ])->save();
+        } catch (\Throwable $exception) {
+            $run->fill([
+                'status' => DiscordSyncRun::STATUS_FAILED,
+                'error' => $exception->getMessage(),
+                'finished_at' => now(),
+            ])->save();
+
+            throw $exception;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @return array{queued: int, processed: int}
+     */
+    public function dispatchStaleSyncJobs(?int $hours = null): array
+    {
+        $hours = $hours ?? (int) config('discord.stale_sync_hours', 24);
+
+        $run = DiscordSyncRun::query()->create([
+            'trigger' => DiscordSyncRun::TRIGGER_SCHEDULE,
+            'status' => DiscordSyncRun::STATUS_RUNNING,
+            'meta' => ['stale_hours' => $hours, 'mode' => 'queued'],
+        ]);
+
+        $counts = ['queued' => 0, 'processed' => 0];
+        $userClass = config('discord.user_model');
+
+        try {
+            foreach ($this->staleLinkedUserIds(now()->subHours($hours)) as $userId) {
+                $counts['processed']++;
+                $user = $userClass::query()->find($userId);
+
+                if ($user === null) {
+                    continue;
+                }
+
+                SyncUserDiscordRolesJob::dispatchForUser($user);
+                $counts['queued']++;
+            }
+
+            $run->fill([
+                'status' => DiscordSyncRun::STATUS_OK,
+                'users_processed' => $counts['processed'],
+                'users_synced' => $counts['queued'],
+                'meta' => ['stale_hours' => $hours, 'mode' => 'queued', 'jobs_dispatched' => $counts['queued']],
+                'finished_at' => now(),
+            ])->save();
+        } catch (\Throwable $exception) {
+            $run->fill([
+                'status' => DiscordSyncRun::STATUS_FAILED,
+                'error' => $exception->getMessage(),
+                'finished_at' => now(),
+            ])->save();
+
+            throw $exception;
+        }
+
+        return $counts;
+    }
 
     /**
      * @return array{synced: int, skipped: int, failed: int, processed: int}

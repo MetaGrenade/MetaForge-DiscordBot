@@ -68,6 +68,34 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
 });
 
+client.on(Events.GuildMemberUpdate, async (previous, member) => {
+  if (guildId && member.guild.id !== guildId) {
+    return;
+  }
+
+  if (!metaforgeWebhookUrl || !metaforgeWebhookSecret) {
+    return;
+  }
+
+  const previousRoles = previous.roles.cache.map((role) => role.id).sort();
+  const nextRoles = member.roles.cache.map((role) => role.id).sort();
+
+  if (previousRoles.join(',') === nextRoles.join(',')) {
+    return;
+  }
+
+  try {
+    await postMetaForgeEvent(metaforgeWebhookUrl, metaforgeWebhookSecret, 'guild.member.update', {
+      discord_user_id: member.id,
+      guild_id: member.guild.id,
+      roles: nextRoles,
+      previous_roles: previousRoles,
+    });
+  } catch (error) {
+    console.error('Failed to forward guild.member.update:', error);
+  }
+});
+
 client.on(Events.GuildMemberAdd, async (member) => {
   if (guildId && member.guild.id !== guildId) {
     return;
