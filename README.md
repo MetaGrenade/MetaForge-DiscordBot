@@ -126,6 +126,27 @@ DISCORD_ADMIN_ROUTE_PREFIX=discord/admin
 DISCORD_USER_ROUTE_PREFIX=discord/user
 ```
 
+### 6. Community features (phase 4)
+
+- **Support ticket mirroring** — staff channel embeds (+ optional thread-per-ticket), configurable MetaForge events or signed `POST /discord/bot/support-tickets`. Docs: [docs/support-tickets.md](docs/support-tickets.md).
+- **Forum / RSS cross-post** — queue new threads or poll forum RSS into Discord. Docs: [docs/forum-crosspost.md](docs/forum-crosspost.md).
+- **Welcome messages** — optional `guildMemberAdd` → queued channel message (`DISCORD_WELCOME_*`).
+- **Staff slash command** — `/ticket <id>` (requires staff Discord roles or linked MetaForge staff).
+
+All outbound Discord traffic is **queued** and rate-limited (`DISCORD_OUTBOUND_RATE_LIMIT_PER_MINUTE`).
+
+Example phase 4 env:
+
+```env
+DISCORD_SUPPORT_TICKET_CHANNEL_ID=
+DISCORD_SUPPORT_TICKET_THREAD_PER_TICKET=false
+DISCORD_SUPPORT_TICKET_EVENT_CLASSES=
+DISCORD_FORUM_CROSSPOST_ENABLED=false
+DISCORD_FORUM_CROSSPOST_CHANNEL_ID=
+DISCORD_WELCOME_ENABLED=false
+DISCORD_WELCOME_CHANNEL_ID=
+```
+
 ## Production setup
 
 Use this after the Laravel package is installed in MetaForge (laravel-vue PR #309 or equivalent).

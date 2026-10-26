@@ -122,6 +122,85 @@ return [
         explode(',', (string) env('DISCORD_SUPPORT_TICKET_EVENT_CLASSES', '')),
     ))),
 
+    'support_ticket_mirror_enabled' => (bool) env('DISCORD_SUPPORT_TICKET_MIRROR_ENABLED', true),
+
+    'support_ticket_channel_id' => env('DISCORD_SUPPORT_TICKET_CHANNEL_ID'),
+
+    'support_ticket_webhook_url' => env('DISCORD_SUPPORT_TICKET_WEBHOOK_URL'),
+
+    'support_ticket_thread_per_ticket' => (bool) env('DISCORD_SUPPORT_TICKET_THREAD_PER_TICKET', false),
+
+    'support_ticket_thread_auto_archive_minutes' => (int) env('DISCORD_SUPPORT_TICKET_THREAD_AUTO_ARCHIVE', 1440),
+
+    'support_ticket_url_template' => env('DISCORD_SUPPORT_TICKET_URL_TEMPLATE'),
+
+    'support_ticket_excerpt_max' => (int) env('DISCORD_SUPPORT_TICKET_EXCERPT_MAX', 280),
+
+    'support_staff_discord_role_ids' => array_values(array_filter(array_map(
+        trim(...),
+        explode(',', (string) env('DISCORD_SUPPORT_STAFF_ROLE_IDS', '')),
+    ))),
+
+    'support_staff_permissions' => array_values(array_filter(array_map(
+        trim(...),
+        explode(',', (string) env('DISCORD_SUPPORT_STAFF_PERMISSIONS', '')),
+    ))),
+
+    'support_staff_spatie_roles' => array_values(array_filter(array_map(
+        trim(...),
+        explode(',', (string) env('DISCORD_SUPPORT_STAFF_SPATIE_ROLES', 'admin,moderator')),
+    ))),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Forum / announcement cross-post (phase 4)
+    |--------------------------------------------------------------------------
+    */
+
+    'forum_crosspost_enabled' => (bool) env('DISCORD_FORUM_CROSSPOST_ENABLED', false),
+
+    'forum_crosspost_channel_id' => env('DISCORD_FORUM_CROSSPOST_CHANNEL_ID'),
+
+    'forum_crosspost_webhook_url' => env('DISCORD_FORUM_CROSSPOST_WEBHOOK_URL'),
+
+    'forum_crosspost_event_classes' => array_values(array_filter(array_map(
+        trim(...),
+        explode(',', (string) env('DISCORD_FORUM_CROSSPOST_EVENT_CLASSES', 'App\\Events\\ForumPostCreated')),
+    ))),
+
+    'forum_crosspost_mode' => env('DISCORD_FORUM_CROSSPOST_MODE', 'new_threads'),
+
+    'forum_crosspost_board_slugs' => env('DISCORD_FORUM_CROSSPOST_BOARD_SLUGS'),
+
+    'forum_crosspost_url_template' => env('DISCORD_FORUM_CROSSPOST_URL_TEMPLATE'),
+
+    'forum_rss_url' => env('DISCORD_FORUM_RSS_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Welcome messages (optional)
+    |--------------------------------------------------------------------------
+    */
+
+    'welcome_enabled' => (bool) env('DISCORD_WELCOME_ENABLED', false),
+
+    'welcome_channel_id' => env('DISCORD_WELCOME_CHANNEL_ID'),
+
+    'welcome_linked_only' => (bool) env('DISCORD_WELCOME_LINKED_ONLY', true),
+
+    'welcome_message_template' => env(
+        'DISCORD_WELCOME_MESSAGE_TEMPLATE',
+        'Welcome <@{discord_user_id}> — link your MetaForge account via Discord OAuth on the site.',
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Outbound Discord posts (webhooks + bot API)
+    |--------------------------------------------------------------------------
+    */
+
+    'outbound_rate_limit_per_minute' => (int) env('DISCORD_OUTBOUND_RATE_LIMIT_PER_MINUTE', 30),
+
     /*
     |--------------------------------------------------------------------------
     | Models (override in host app if needed)

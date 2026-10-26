@@ -6,6 +6,7 @@ use MetaForge\Discord\Http\Controllers\Admin\RoleMappingController;
 use MetaForge\Discord\Http\Controllers\Admin\SyncAdminController;
 use MetaForge\Discord\Http\Controllers\BotEventController;
 use MetaForge\Discord\Http\Controllers\BotMemberController;
+use MetaForge\Discord\Http\Controllers\SupportTicketBotController;
 
 Route::middleware(['api', 'discord.bot'])
     ->prefix('discord/bot')
@@ -13,6 +14,8 @@ Route::middleware(['api', 'discord.bot'])
         Route::post('events', BotEventController::class);
         Route::post('members/link-status', [BotMemberController::class, 'linkStatus']);
         Route::post('members/roles', [BotMemberController::class, 'roles']);
+        Route::post('support-tickets', [SupportTicketBotController::class, 'ingest']);
+        Route::post('support-tickets/summary', [SupportTicketBotController::class, 'summary']);
     });
 
 Route::middleware(array_merge(config('discord.admin_middleware', ['api']), []))

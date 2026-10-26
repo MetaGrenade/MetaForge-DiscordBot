@@ -71,6 +71,34 @@ class DiscordApiClient
         return $roles;
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function createMessage(string $channelId, array $payload): array
+    {
+        $response = $this->request()->post("/channels/{$channelId}/messages", $payload);
+
+        return $this->decode($response);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function startThreadFromMessage(
+        string $channelId,
+        string $messageId,
+        string $name,
+        int $autoArchiveDurationMinutes = 1440,
+    ): array {
+        $response = $this->request()->post("/channels/{$channelId}/messages/{$messageId}/threads", [
+            'name' => $name,
+            'auto_archive_duration' => $autoArchiveDurationMinutes,
+        ]);
+
+        return $this->decode($response);
+    }
+
     private function request(): PendingRequest
     {
         if (! $this->botToken) {
