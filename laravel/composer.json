@@ -1,12 +1,13 @@
 {
     "name": "metagrenade/metaforge-discord",
-    "description": "Discord companion for MetaForge Laravel-Vue: role sync, notifications, and bot webhooks.",
+    "description": "MetaForger Companion — Discord addon for laravel-vue: role sync, notifications, and bot webhooks.",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "Caleb Harrod",
-            "homepage": "https://github.com/MetaGrenade"
+            "name": "Dead Pixel Labs, LLC",
+            "email": "contact@deadpixellabs.com",
+            "homepage": "https://metaforger.dev"
         }
     ],
     "require": {

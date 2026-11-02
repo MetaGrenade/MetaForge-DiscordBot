@@ -1,6 +1,15 @@
-# MetaForge Discord Bot
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/metaforger-companion-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/metaforger-companion-light.png">
+  <img alt="MetaForger Companion" src="docs/assets/metaforger-companion-light.png" width="560">
+</picture>
 
-Discord companion for [MetaForge (laravel-vue)](https://github.com/MetaGrenade/laravel-vue): **bidirectional-aware role sync**, Laravel **notifications** via webhooks, and a **gateway bot** for slash commands and guild events.
+# MetaForger Companion
+
+Discord companion for the [MetaForger](https://metaforger.dev) platform ([laravel-vue](https://github.com/MetaGrenade/laravel-vue) boilerplate): **bidirectional-aware role sync**, Laravel **notifications** via webhooks, and a **gateway bot** for slash commands and guild events — built and maintained in this repository independently from the web app.
+
+**Project home:** [metaforger.dev](https://metaforger.dev) · **Contact:** [contact@deadpixellabs.com](mailto:contact@deadpixellabs.com)  
+Created by **Dead Pixel Labs, LLC**
 
 ## Packages
 
@@ -9,13 +18,13 @@ Discord companion for [MetaForge (laravel-vue)](https://github.com/MetaGrenade/l
 | [`laravel/`](laravel/) | Installable Laravel package (`metagrenade/metaforge-discord`) |
 | [`bot/`](bot/) | TypeScript [discord.js](https://discord.js.org/) gateway process |
 
-Project architecture and roadmap: see the MetaForge Project store document `docs/discord-bot-plan.md`.
+Architecture and roadmap: [docs/discord-bot-plan.md](docs/discord-bot-plan.md) (also in MetaForger Project Context when using Cursor Projects).
 
-End-to-end operator checklist (Developer Portal, secrets, migrations, queue, bot, ACP): **`docs/discord-companion-setup.md`** in the MetaForge Project store.
+Operator checklist: [docs/discord-companion-setup.md](docs/discord-companion-setup.md) (Developer Portal, secrets, migrations, queue, bot, ACP).
 
 ## Quick start
 
-### 1. Install the Laravel package into MetaForge
+### 1. Install the Laravel package into MetaForger (laravel-vue)
 
 ```json
 {
@@ -40,7 +49,7 @@ php artisan discord:ping
 php artisan discord:sync-roles --dry-run
 ```
 
-### 2. Configure environment (MetaForge)
+### 2. Configure environment (MetaForger app)
 
 ```env
 DISCORD_BOT_TOKEN=
@@ -171,7 +180,7 @@ Use this after the Laravel package is installed in MetaForge (laravel-vue PR #30
 
 4. **Discord**: `/ping` in guild; configure first role mapping in ACP ([laravel-vue integration](docs/laravel-vue-integration.md)); **restart the bot** after deploy so `/link` and `/roles` register.
 
-Bot-only details: [bot/README.md](bot/README.md). The bot does **not** need Redis; MetaForge uses your existing queue driver for sync jobs.
+Bot-only details: [bot/README.md](bot/README.md). The bot does **not** need Redis; MetaForger uses your existing queue driver for sync jobs.
 
 ## Development (this repository)
 
@@ -191,3 +200,5 @@ make setup    # npm ci in bot/ + setup-check.sh
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+Copyright © Dead Pixel Labs, LLC. MetaForger is a product of [Dead Pixel Labs](https://metaforger.dev). Questions: [contact@deadpixellabs.com](mailto:contact@deadpixellabs.com).
