@@ -128,6 +128,8 @@ Notifications without the interface behave as in phase 1 (no preference gate).
 
 Listen for `MetaForge\Discord\Events\UserDiscordNotificationPreferenceUpdated` if you need audit logs or analytics.
 
+Moderation staff mirroring and `account_moderation` user notices: [moderation-discord.md](./moderation-discord.md).
+
 ## 7. Bot slash commands
 
 No laravel-vue code required. Ensure production `.env` has `DISCORD_BOT_SHARED_SECRET` and the bot `.env` uses the same value for `METAFORGE_WEBHOOK_SECRET`. Set `METAFORGE_WEBHOOK_URL` to the app origin (e.g. `https://metaforge.example.com`); the bot calls signed `POST` routes under `/discord/bot/members/*`.
