@@ -12,6 +12,19 @@ return [
 
     'guild_id' => env('DISCORD_GUILD_ID'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-guild registry (phase 5 foundation)
+    |--------------------------------------------------------------------------
+    |
+    | When the discord_guilds table has enabled rows, inbound events are accepted
+    | for any registered guild. Outbound role sync still uses the primary guild
+    | (DISCORD_GUILD_ID, or the row marked is_primary when env is empty).
+    |
+    */
+
+    'guild_registry_enabled' => (bool) env('DISCORD_GUILD_REGISTRY_ENABLED', false),
+
     'application_id' => env('DISCORD_APPLICATION_ID'),
 
     'api_base' => rtrim(env('DISCORD_API_BASE', 'https://discord.com/api/v10'), '/'),
@@ -200,6 +213,23 @@ return [
     */
 
     'outbound_rate_limit_per_minute' => (int) env('DISCORD_OUTBOUND_RATE_LIMIT_PER_MINUTE', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Observability (optional; no hard OTEL dependency)
+    |--------------------------------------------------------------------------
+    |
+    | structured_logging — JSON-friendly log context for role sync and outbound posts.
+    | metrics_enabled — emit discord.metric log lines hosts can scrape or bridge to OTEL.
+    |
+    */
+
+    'observability' => [
+        'structured_logging' => (bool) env('DISCORD_STRUCTURED_LOGGING', true),
+        'metrics_enabled' => (bool) env('DISCORD_METRICS_ENABLED', false),
+        'otel_exporter_otlp_endpoint' => env('DISCORD_OTEL_EXPORTER_OTLP_ENDPOINT'),
+        'otel_service_name' => env('DISCORD_OTEL_SERVICE_NAME', 'metaforge-discord'),
+    ],
 
     /*
     |--------------------------------------------------------------------------
