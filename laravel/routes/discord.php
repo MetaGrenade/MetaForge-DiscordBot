@@ -28,6 +28,8 @@ Route::middleware(array_merge(config('discord.admin_middleware', ['api']), []))
 
         Route::get('sync/status', [SyncAdminController::class, 'status']);
         Route::get('sync/runs', [SyncAdminController::class, 'runs']);
+        Route::get('sync/failures', [SyncAdminController::class, 'failures']);
+        Route::post('sync/failures/retry', [SyncAdminController::class, 'retryFailures']);
         Route::post('sync/users/{userId}', [SyncAdminController::class, 'syncUser'])
             ->whereNumber('userId');
 
