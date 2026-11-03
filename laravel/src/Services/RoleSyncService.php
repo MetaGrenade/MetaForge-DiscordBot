@@ -8,6 +8,9 @@ use MetaForge\Discord\Jobs\SyncUserDiscordRolesJob;
 use MetaForge\Discord\Models\DiscordRoleMapping;
 use MetaForge\Discord\Models\DiscordSyncRun;
 use MetaForge\Discord\Models\DiscordUserSyncState;
+use MetaForge\Discord\Support\DiscordGuildResolver;
+use MetaForge\Discord\Support\DiscordObservability;
+use MetaForge\Discord\Support\DiscordStructuredLog;
 
 class RoleSyncResult
 {
@@ -21,6 +24,7 @@ class RoleSyncService
 {
     public function __construct(
         private readonly DiscordApiClient $client,
+        private readonly DiscordGuildResolver $guilds,
     ) {}
 
     /**
@@ -271,7 +275,7 @@ class RoleSyncService
             return $result;
         }
 
-        $guildId = (string) config('discord.guild_id');
+        $guildId = (string) ($this->guilds->primaryGuildId() ?? '');
         if ($guildId === '') {
             $result = new RoleSyncResult('skipped', 'DISCORD_GUILD_ID is not configured.');
             $this->recordSyncState($user, $result);
@@ -317,11 +321,24 @@ class RoleSyncService
 
             $result = new RoleSyncResult('synced');
             $this->recordSyncState($user, $result);
+            DiscordStructuredLog::info('discord.role_sync.outbound.applied', [
+                'user_id' => $user->getKey(),
+                'guild_id' => $guildId,
+                'role_count' => $finalRoles->count(),
+            ]);
+            DiscordObservability::recordCounter('discord.role_sync.outbound.applied', [
+                'guild_id' => $guildId,
+            ]);
 
             return $result;
         } catch (\Throwable $exception) {
             $result = new RoleSyncResult('failed', $exception->getMessage());
             $this->recordSyncState($user, $result);
+            DiscordStructuredLog::warning('discord.role_sync.outbound.error', [
+                'user_id' => $user->getKey(),
+                'guild_id' => $guildId,
+                'error' => $exception->getMessage(),
+            ]);
 
             throw $exception;
         }

@@ -5,6 +5,7 @@ namespace MetaForge\Discord\Services;
 use Illuminate\Database\Eloquent\Model;
 use MetaForge\Discord\Models\DiscordRoleMapping;
 use MetaForge\Discord\Models\DiscordSyncRun;
+use MetaForge\Discord\Support\DiscordGuildResolver;
 use MetaForge\Discord\Support\OutboundDiscordRoleSyncGuard;
 
 class DiscordInboundRoleSyncResult
@@ -21,6 +22,7 @@ class DiscordInboundRoleSyncService
 {
     public function __construct(
         private readonly DiscordMemberLookupService $members,
+        private readonly DiscordGuildResolver $guilds,
     ) {}
 
     /**
@@ -32,9 +34,8 @@ class DiscordInboundRoleSyncService
             return new DiscordInboundRoleSyncResult('skipped', 'Discord → app role sync is disabled.');
         }
 
-        $configuredGuild = (string) config('discord.guild_id');
-        if ($configuredGuild !== '' && $guildId !== $configuredGuild) {
-            return new DiscordInboundRoleSyncResult('skipped', 'Event guild does not match DISCORD_GUILD_ID.');
+        if (! $this->guilds->isManagedGuild($guildId)) {
+            return new DiscordInboundRoleSyncResult('skipped', 'Event guild is not in the managed guild registry.');
         }
 
         if ((string) config('discord.inbound_conflict_policy', 'discord_wins') === 'app_wins') {
@@ -43,7 +44,7 @@ class DiscordInboundRoleSyncService
 
         $user = $this->findUserByDiscordId($discordUserId);
         if ($user === null) {
-            return new DiscordInboundRoleSyncResult('skipped', 'Discord member is not linked to a MetaForge user.');
+            return new DiscordInboundRoleSyncResult('skipped', 'Discord member is not linked to a MetaForger user.');
         }
 
         if (! method_exists($user, 'assignRole') || ! method_exists($user, 'removeRole')) {

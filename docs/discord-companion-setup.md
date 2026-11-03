@@ -1,6 +1,6 @@
-# MetaForge Discord companion — end-to-end setup
+# MetaForger Discord companion — end-to-end setup
 
-Ordered checklist to connect [MetaForge (laravel-vue)](https://github.com/MetaGrenade/laravel-vue) with the [MetaForge-DiscordBot](https://github.com/MetaGrenade/MetaForge-DiscordBot) companion (Laravel package + gateway bot). **Caleb must supply all Discord and production secrets** — nothing in this doc contains real credentials.
+Ordered checklist to connect [MetaForger (laravel-vue)](https://github.com/MetaGrenade/laravel-vue) with the [MetaForge-DiscordBot](https://github.com/MetaGrenade/MetaForge-DiscordBot) companion (Laravel package + gateway bot). **Caleb must supply all Discord and production secrets** — nothing in this doc contains real credentials.
 
 **Related docs**
 
@@ -23,7 +23,7 @@ Use one application for **OAuth login** and the **bot** (recommended), or separa
 
 ### 1.1 Create the application
 
-- [ ] Open [Discord Developer Portal](https://discord.com/developers/applications) → **New Application** (e.g. “MetaForge Companion”).
+- [ ] Open [Discord Developer Portal](https://discord.com/developers/applications) → **New Application** (e.g. “MetaForger Companion”).
 - [ ] Note **Application ID** → maps to `DISCORD_APPLICATION_ID` (and often equals OAuth **Client ID**).
 
 ### 1.2 OAuth2 (MetaForge login — existing flow)
@@ -112,7 +112,7 @@ php artisan vendor:publish --tag=metaforge-discord-config   # if not already com
 php artisan migrate
 ```
 
-- [ ] Confirm tables: `discord_role_mappings`, `discord_sync_runs`, `discord_user_sync_states`, `discord_notification_preferences`.
+- [ ] Confirm tables: `discord_role_mappings`, `discord_sync_runs`, `discord_user_sync_states`, `discord_notification_preferences`, `discord_sync_failures`, `discord_guilds` (Phase 5).
 
 ---
 
@@ -187,7 +187,7 @@ Validate bot env before start:
 ## 8. Smoke test in Discord
 
 - [ ] Bot shows **online** in the guild member list.
-- [ ] Run **`/ping`** in Discord → ephemeral reply: “MetaForge Discord bot is online.”
+- [ ] Run **`/ping`** in Discord → ephemeral reply: “MetaForger Discord bot is online.”
 - [ ] Link a test user via MetaForge **Discord OAuth**, then **`/link`** → shows linked account.
 - [ ] **`/roles`** → read-only Spatie + mapped Discord role IDs (after mappings exist).
 
@@ -226,3 +226,17 @@ Details: [laravel-vue-integration.md § ACP — role mappings](https://github.co
 | 401 on bot → Laravel routes | `DISCORD_BOT_SHARED_SECRET` ↔ `METAFORGE_WEBHOOK_SECRET`, clock skew |
 
 For design decisions and phases, see [discord-bot-plan.md](./discord-bot-plan.md).
+
+---
+
+## 11. Post–Phase 5 production ops
+
+After hardening (failed sync DLQ, observability, multi-guild foundation):
+
+- [ ] **Queue worker + scheduler** still required; add `discord:retry-failures` to the host scheduler (see [operations.md](./operations.md)).
+- [ ] **Monitor** `discord_sync_failures` for unresolved rows; alert if count grows for >1 hour.
+- [ ] **Structured logs**: filter on `discord_event` in your log stack (`DISCORD_STRUCTURED_LOGGING=true` by default).
+- [ ] **Optional metrics**: set `DISCORD_METRICS_ENABLED=true` and bridge `discord.metric` logs to OTLP if you use OpenTelemetry (env stubs only — no package SDK dependency).
+- [ ] **Multi-guild prep**: keep `DISCORD_GUILD_ID` for the primary server; insert additional rows into `discord_guilds` when you add servers (outbound sync remains single-guild until a later phase).
+- [ ] **Failure recovery runbook**: [operations.md](./operations.md) — `php artisan discord:retry-failures --dry-run` then retry without dry-run.
+- [ ] **Deploy bot + Laravel together** when changing guild registry or inbound sync behavior; restart the gateway bot after `DISCORD_APPLICATION_ID` / command changes (see §10).

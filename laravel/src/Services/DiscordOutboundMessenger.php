@@ -5,6 +5,8 @@ namespace MetaForge\Discord\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use MetaForge\Discord\Support\DiscordObservability;
+use MetaForge\Discord\Support\DiscordStructuredLog;
 
 class DiscordOutboundMessenger
 {
@@ -21,10 +23,21 @@ class DiscordOutboundMessenger
         return $this->withOutboundLimit(function () use ($channelId, $payload) {
             $response = $this->api->createMessage($channelId, $payload);
 
-            return [
+            $result = [
                 'message_id' => isset($response['id']) ? (string) $response['id'] : null,
                 'channel_id' => isset($response['channel_id']) ? (string) $response['channel_id'] : $channelId,
             ];
+
+            DiscordStructuredLog::info('discord.outbound.post', [
+                'transport' => 'bot_api',
+                'channel_id' => $result['channel_id'],
+                'message_id' => $result['message_id'],
+            ]);
+            DiscordObservability::recordCounter('discord.outbound.post', [
+                'transport' => 'bot_api',
+            ]);
+
+            return $result;
         });
     }
 
@@ -45,6 +58,14 @@ class DiscordOutboundMessenger
             Http::asJson()
                 ->post($webhookUrl, $payload)
                 ->throw();
+
+            DiscordStructuredLog::info('discord.outbound.post', [
+                'transport' => 'webhook',
+                'webhook_host' => parse_url($webhookUrl, PHP_URL_HOST),
+            ]);
+            DiscordObservability::recordCounter('discord.outbound.post', [
+                'transport' => 'webhook',
+            ]);
         });
     }
 

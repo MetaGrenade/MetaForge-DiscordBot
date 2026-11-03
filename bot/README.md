@@ -1,16 +1,16 @@
-# MetaForge Discord gateway bot
+# MetaForger Discord gateway bot
 
-Long-lived [discord.js](https://discord.js.org/) v14 process: guild slash commands (`/ping`, `/link`, `/roles`, staff `/ticket`), forwards `ready`, `guildMemberAdd`, and **`guildMemberUpdate`** (role changes) to MetaForge via signed HTTP.
+Long-lived [discord.js](https://discord.js.org/) v14 process: guild slash commands (`/ping`, `/link`, `/roles`, staff `/ticket`), forwards `ready`, `guildMemberAdd`, and **`guildMemberUpdate`** (role changes) to MetaForger via signed HTTP.
 
-Laravel role sync and notifications run in **MetaForge** (package `metagrenade/metaforge-discord`), not in this folder.
+Laravel role sync and notifications run in **MetaForger** (package `metagrenade/metaforge-discord`), not in this folder.
 
 ## Requirements
 
 - Node.js **20+**
 - Discord **bot token**, **application ID**, and target **guild ID**
-- MetaForge app URL and **shared secret** (same as `DISCORD_BOT_SHARED_SECRET`)
+- MetaForger app URL and **shared secret** (same as `DISCORD_BOT_SHARED_SECRET`)
 
-End-to-end checklist (Discord Portal, MetaForge `.env`, migrations, ACP): see the MetaForge Project store `docs/discord-companion-setup.md`, or root [README](../README.md#production-setup).
+End-to-end checklist (Discord Portal, MetaForger `.env`, migrations, ACP): see [docs/discord-companion-setup.md](../docs/discord-companion-setup.md), or root [README](../README.md#production-setup). Production ops (DLQ retry, metrics): [docs/operations.md](../docs/operations.md).
 
 ## Configure
 
@@ -23,8 +23,8 @@ cp .env.example .env
 | `DISCORD_BOT_TOKEN` | Bot token from Developer Portal → Bot |
 | `DISCORD_GUILD_ID` | Target server snowflake |
 | `DISCORD_APPLICATION_ID` | Application ID (slash command registration) |
-| `METAFORGE_WEBHOOK_URL` | MetaForge **origin** only, e.g. `https://metaforge.example.com` |
-| `METAFORGE_WEBHOOK_SECRET` | Same value as MetaForge `DISCORD_BOT_SHARED_SECRET` |
+| `METAFORGE_WEBHOOK_URL` | MetaForger **origin** only, e.g. `https://metaforger.example.com` |
+| `METAFORGE_WEBHOOK_SECRET` | Same value as MetaForger `DISCORD_BOT_SHARED_SECRET` |
 
 Validate:
 
@@ -64,7 +64,7 @@ docker compose logs -f bot
 
 After deploy or command changes, **restart** this process so guild slash commands re-register.
 
-## Endpoints used on MetaForge
+## Endpoints used on MetaForger
 
 | Method | Path |
 |--------|------|

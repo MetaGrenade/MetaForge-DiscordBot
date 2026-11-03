@@ -40,18 +40,18 @@ async function registerCommands(): Promise<void> {
   }
 
   const commands = [
-    new SlashCommandBuilder().setName('ping').setDescription('Check whether the MetaForge Discord bot is online.'),
+    new SlashCommandBuilder().setName('ping').setDescription('Check whether the MetaForger Discord bot is online.'),
     new SlashCommandBuilder()
       .setName('link')
-      .setDescription('Show whether your Discord account is linked to MetaForge.'),
+      .setDescription('Show whether your Discord account is linked to MetaForger.'),
     new SlashCommandBuilder()
       .setName('roles')
-      .setDescription('Show your MetaForge roles and mapped Discord roles (read-only).'),
+      .setDescription('Show your MetaForger roles and mapped Discord roles (read-only).'),
     new SlashCommandBuilder()
       .setName('ticket')
-      .setDescription('Staff: fetch a short support ticket summary from MetaForge.')
+      .setDescription('Staff: fetch a short support ticket summary from MetaForger.')
       .addIntegerOption((option) =>
-        option.setName('id').setDescription('MetaForge support ticket ID').setRequired(true),
+        option.setName('id').setDescription('MetaForger support ticket ID').setRequired(true),
       ),
   ].map((command) => command.toJSON());
 
@@ -127,14 +127,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (interaction.commandName === 'ping') {
-    await interaction.reply({ content: 'MetaForge Discord bot is online.', ephemeral: true });
+    await interaction.reply({ content: 'MetaForger Discord bot is online.', ephemeral: true });
     return;
   }
 
   if (interaction.commandName === 'ticket') {
     if (!metaforgeWebhookUrl || !metaforgeWebhookSecret) {
       await interaction.reply({
-        content: 'MetaForge API is not configured on this bot.',
+        content: 'MetaForger API is not configured on this bot.',
         ephemeral: true,
       });
       return;
@@ -168,7 +168,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.editReply(data.summary ?? 'No summary returned.');
     } catch (error) {
       console.error('Failed /ticket command:', error);
-      await interaction.editReply('Could not reach MetaForge or you are not authorized.');
+      await interaction.editReply('Could not reach MetaForger or you are not authorized.');
     }
 
     return;
@@ -177,7 +177,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.commandName === 'link' || interaction.commandName === 'roles') {
     if (!metaforgeWebhookUrl || !metaforgeWebhookSecret) {
       await interaction.reply({
-        content: 'MetaForge API is not configured on this bot (METAFORGE_WEBHOOK_URL / METAFORGE_WEBHOOK_SECRET).',
+        content: 'MetaForger API is not configured on this bot (METAFORGE_WEBHOOK_URL / METAFORGE_WEBHOOK_SECRET).',
         ephemeral: true,
       });
       return;
@@ -196,13 +196,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
         if (!data.linked) {
           await interaction.editReply(
-            'Your Discord account is **not linked** to MetaForge. Sign in at the site with Discord OAuth to link.',
+            'Your Discord account is **not linked** to MetaForger. Sign in at the site with Discord OAuth to link.',
           );
           return;
         }
 
         const label = data.user?.name ?? `user #${data.user?.id ?? '?'}`;
-        await interaction.editReply(`Your Discord account is linked to MetaForge as **${label}**.`);
+        await interaction.editReply(`Your Discord account is linked to MetaForger as **${label}**.`);
         return;
       }
 
@@ -214,18 +214,18 @@ client.on(Events.InteractionCreate, async (interaction) => {
       );
 
       if (!data.linked) {
-        await interaction.editReply('Link your Discord account via MetaForge OAuth before checking roles.');
+        await interaction.editReply('Link your Discord account via MetaForger OAuth before checking roles.');
         return;
       }
 
       const spatie = data.spatie_roles?.length ? data.spatie_roles.join(', ') : '(none)';
       const mapped = data.mapped_discord_roles?.length ? data.mapped_discord_roles.join(', ') : '(none)';
       await interaction.editReply(
-        `**MetaForge roles:** ${spatie}\n**Mapped Discord role IDs:** ${mapped}\n\nRole changes are applied by MetaForge; this command is read-only.`,
+        `**MetaForger roles:** ${spatie}\n**Mapped Discord role IDs:** ${mapped}\n\nRole changes are applied by MetaForger; this command is read-only.`,
       );
     } catch (error) {
       console.error(`Failed ${interaction.commandName} command:`, error);
-      await interaction.editReply('Could not reach MetaForge. Try again later or contact staff.');
+      await interaction.editReply('Could not reach MetaForger. Try again later or contact staff.');
     }
   }
 });

@@ -11,7 +11,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
+use MetaForge\Discord\Models\DiscordSyncFailure;
+use MetaForge\Discord\Support\DiscordObservability;
+use MetaForge\Discord\Support\DiscordStructuredLog;
 use MetaForge\Discord\Services\RoleSyncService;
 
 class SyncUserDiscordRolesJob implements ShouldBeUnique, ShouldQueue
@@ -59,10 +61,53 @@ class SyncUserDiscordRolesJob implements ShouldBeUnique, ShouldQueue
         $result = $sync->syncUser($user);
 
         if ($result->status === 'failed') {
-            Log::warning('Discord role sync failed for user '.$this->userId, [
+            DiscordStructuredLog::warning('discord.role_sync.outbound.failed', [
+                'user_id' => $this->userId,
                 'message' => $result->message,
             ]);
+            DiscordObservability::recordCounter('discord.role_sync.outbound.failed', [
+                'user_id' => $this->userId,
+            ]);
+
+            DiscordSyncFailure::record(
+                DiscordSyncFailure::OPERATION_OUTBOUND_ROLE_SYNC,
+                (string) ($result->message ?? 'Outbound role sync failed.'),
+                $this->userId,
+                null,
+                (string) config('discord.guild_id') ?: null,
+                [
+                    'user_id' => $this->userId,
+                    'user_class' => $this->userClass,
+                ],
+            );
+        } elseif ($result->status === 'synced') {
+            DiscordStructuredLog::info('discord.role_sync.outbound.synced', [
+                'user_id' => $this->userId,
+            ]);
+            DiscordObservability::recordCounter('discord.role_sync.outbound.synced', [
+                'user_id' => $this->userId,
+            ]);
         }
+    }
+
+    public function failed(\Throwable $exception): void
+    {
+        DiscordSyncFailure::record(
+            DiscordSyncFailure::OPERATION_OUTBOUND_ROLE_SYNC,
+            $exception->getMessage(),
+            $this->userId,
+            null,
+            (string) config('discord.guild_id') ?: null,
+            [
+                'user_id' => $this->userId,
+                'user_class' => $this->userClass,
+            ],
+        );
+
+        DiscordStructuredLog::warning('discord.role_sync.outbound.job_failed', [
+            'user_id' => $this->userId,
+            'error' => $exception->getMessage(),
+        ]);
     }
 
     public static function dispatchForUser(Model $user): void

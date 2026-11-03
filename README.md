@@ -60,7 +60,7 @@ DISCORD_WEBHOOK_URL=
 DISCORD_ROLE_SYNC_ENABLED=true
 ```
 
-Users must link Discord via MetaForge’s existing OAuth (`social_accounts` with `provider = discord`).
+Users must link Discord via MetaForger’s existing OAuth (`social_accounts` with `provider = discord`).
 
 Role mappings can be seeded manually or managed via the **ACP API** (see [laravel-vue integration](docs/laravel-vue-integration.md)).
 
@@ -98,7 +98,9 @@ Bulk outbound sync (`php artisan discord:sync-roles`) **queues** one job per lin
 - **Slash commands**: `/link` (OAuth link status), `/roles` (read-only Spatie + mapped Discord roles).
 - **User notification opt-in**: `/discord/user/notification-preferences` + `DiscordNotifiableNotification` on notification classes.
 
-MetaForge ACP wiring steps: [docs/laravel-vue-integration.md](docs/laravel-vue-integration.md).
+MetaForger ACP wiring steps: [docs/laravel-vue-integration.md](docs/laravel-vue-integration.md).
+
+Operations (DLQ retry, observability, multi-guild): [docs/operations.md](docs/operations.md).
 
 ### 6. Support ticket hook (stub)
 

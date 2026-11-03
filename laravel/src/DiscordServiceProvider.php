@@ -11,6 +11,7 @@ use Illuminate\Support\ServiceProvider;
 use MetaForge\Discord\Console\Commands\DiscordPingCommand;
 use MetaForge\Discord\Console\Commands\SyncDiscordRolesCommand;
 use MetaForge\Discord\Http\Middleware\VerifyDiscordBotRequest;
+use MetaForge\Discord\Console\Commands\RetryDiscordFailuresCommand;
 use MetaForge\Discord\Console\Commands\SyncForumRssToDiscordCommand;
 use MetaForge\Discord\Listeners\QueueDiscordRoleSync;
 use MetaForge\Discord\Listeners\QueueForumDiscordCrosspost;
@@ -25,7 +26,9 @@ use MetaForge\Discord\Services\ForumCrosspostService;
 use MetaForge\Discord\Services\RoleSyncService;
 use MetaForge\Discord\Services\SupportTicketEventExtractor;
 use MetaForge\Discord\Services\SupportTicketMirrorService;
+use MetaForge\Discord\Services\DiscordSyncFailureService;
 use MetaForge\Discord\Services\WelcomeMessageService;
+use MetaForge\Discord\Support\DiscordGuildResolver;
 use Spatie\Permission\Events\RoleAttached;
 use Spatie\Permission\Events\RoleDetached;
 
@@ -46,6 +49,8 @@ class DiscordServiceProvider extends ServiceProvider
         $this->app->singleton(ForumCrosspostService::class);
         $this->app->singleton(WelcomeMessageService::class);
         $this->app->singleton(DiscordStaffAccessService::class);
+        $this->app->singleton(DiscordSyncFailureService::class);
+        $this->app->singleton(DiscordGuildResolver::class);
     }
 
     public function boot(): void
@@ -63,6 +68,7 @@ class DiscordServiceProvider extends ServiceProvider
                 DiscordPingCommand::class,
                 SyncDiscordRolesCommand::class,
                 SyncForumRssToDiscordCommand::class,
+                RetryDiscordFailuresCommand::class,
             ]);
         }
 
