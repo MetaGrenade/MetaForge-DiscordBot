@@ -30,6 +30,28 @@ Successful retries mark rows `resolved_at`. If the job fails again, a **new** fa
 
 Ensure a **queue worker** is running so retried jobs execute.
 
+### Admin API (ACP / automation)
+
+Authenticated admin JSON routes (same middleware as role mappings):
+
+| Action | Method | Path |
+|--------|--------|------|
+| Unresolved count (also on sync summary) | `GET` | `/discord/admin/sync/status` → `unresolved_failures` |
+| List failures | `GET` | `/discord/admin/sync/failures?per_page=15&unresolved=1` |
+| Retry batch | `POST` | `/discord/admin/sync/failures/retry` |
+
+Retry body (optional fields):
+
+```json
+{
+  "ids": [1, 2],
+  "limit": 50,
+  "dry_run": false
+}
+```
+
+Omit `ids` to retry the oldest unresolved rows up to `limit` (default 50). Response: `{ "retried": N, "skipped": M }`.
+
 ### Inspect
 
 ```sql
@@ -39,6 +61,8 @@ WHERE resolved_at IS NULL
 ORDER BY last_failed_at DESC
 LIMIT 20;
 ```
+
+Prefer the admin list endpoint for ACP dashboards; use SQL for ad hoc ops.
 
 Pair with per-user state in `discord_user_sync_states` and bulk runs in `discord_sync_runs`.
 

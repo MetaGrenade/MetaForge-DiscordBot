@@ -46,6 +46,8 @@ Populate Spatie role names from your existing roles admin; use `discord-roles` t
 |--------|--------|------|
 | Summary | `GET` | `/discord/admin/sync/status` |
 | Run history | `GET` | `/discord/admin/sync/runs?per_page=15` |
+| Sync failures (DLQ) | `GET` | `/discord/admin/sync/failures?per_page=15&unresolved=1` |
+| Retry failures | `POST` | `/discord/admin/sync/failures/retry` |
 | Sync one user | `POST` | `/discord/admin/sync/users/{userId}` |
 
 Optional query/body for manual sync:
@@ -54,7 +56,19 @@ Optional query/body for manual sync:
 - `?sync=1` — run immediately via `RoleSyncService`
 - `?dry_run=1` — compute only (with `sync=1`)
 
-Show `stale_linked_users` from status alongside the latest `discord_sync_runs` row.
+Show `stale_linked_users` and `unresolved_failures` from status alongside the latest `discord_sync_runs` row.
+
+Retry failures body (all fields optional):
+
+```json
+{
+  "ids": [1, 2],
+  "limit": 50,
+  "dry_run": false
+}
+```
+
+Response: `{ "retried": 2, "skipped": 0 }` — same semantics as `php artisan discord:retry-failures`.
 
 ## 4. Scheduled stale sync
 

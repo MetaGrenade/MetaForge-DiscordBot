@@ -9,15 +9,22 @@ use MetaForge\Discord\Models\DiscordSyncFailure;
 class DiscordSyncFailureService
 {
     /**
+     * @param  list<int>|null  $ids
      * @return array{retried: int, skipped: int}
      */
-    public function retryUnresolved(int $limit = 50, bool $dryRun = false): array
+    public function retryUnresolved(int $limit = 50, bool $dryRun = false, ?array $ids = null): array
     {
         $counts = ['retried' => 0, 'skipped' => 0];
 
-        $failures = DiscordSyncFailure::query()
+        $query = DiscordSyncFailure::query()
             ->whereNull('resolved_at')
-            ->orderBy('id')
+            ->orderBy('id');
+
+        if ($ids !== null && $ids !== []) {
+            $query->whereIn('id', $ids);
+        }
+
+        $failures = $query
             ->limit(max(1, $limit))
             ->get();
 

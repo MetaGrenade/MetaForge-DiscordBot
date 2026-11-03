@@ -7,9 +7,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use MetaForge\Discord\Jobs\SyncUserDiscordRolesJob;
+use MetaForge\Discord\Models\DiscordSyncFailure;
 use MetaForge\Discord\Models\DiscordSyncRun;
 use MetaForge\Discord\Services\DiscordApiClient;
 use MetaForge\Discord\Services\DiscordApiException;
+use MetaForge\Discord\Services\DiscordSyncFailureService;
 use MetaForge\Discord\Services\RoleSyncService;
 
 class SyncAdminController extends Controller
@@ -24,6 +26,7 @@ class SyncAdminController extends Controller
         return response()->json([
             'running' => $running,
             'stale_linked_users' => $sync->staleLinkedUserIds()->count(),
+            'unresolved_failures' => DiscordSyncFailure::query()->whereNull('resolved_at')->count(),
             'latest_run' => $latestRun,
         ]);
     }
@@ -37,6 +40,38 @@ class SyncAdminController extends Controller
             ->paginate($perPage);
 
         return response()->json($runs);
+    }
+
+    public function failures(Request $request): JsonResponse
+    {
+        $perPage = min(max((int) $request->integer('per_page', 15), 1), 100);
+
+        $query = DiscordSyncFailure::query()->latest('id');
+
+        if ($request->boolean('unresolved')) {
+            $query->whereNull('resolved_at');
+        }
+
+        return response()->json($query->paginate($perPage));
+    }
+
+    public function retryFailures(Request $request, DiscordSyncFailureService $service): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['sometimes', 'array'],
+            'ids.*' => ['integer'],
+            'limit' => ['sometimes', 'integer', 'min:1', 'max:500'],
+            'dry_run' => ['sometimes', 'boolean'],
+        ]);
+
+        /** @var list<int>|null $ids */
+        $ids = isset($validated['ids']) ? array_values($validated['ids']) : null;
+        $limit = (int) ($validated['limit'] ?? 50);
+        $dryRun = (bool) ($validated['dry_run'] ?? false);
+
+        $counts = $service->retryUnresolved($limit, $dryRun, $ids);
+
+        return response()->json($counts);
     }
 
     public function syncUser(Request $request, int $userId, RoleSyncService $sync): JsonResponse
