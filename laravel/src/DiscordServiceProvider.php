@@ -9,12 +9,13 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use MetaForge\Discord\Console\Commands\DiscordPingCommand;
-use MetaForge\Discord\Console\Commands\SyncDiscordRolesCommand;
-use MetaForge\Discord\Http\Middleware\VerifyDiscordBotRequest;
 use MetaForge\Discord\Console\Commands\RetryDiscordFailuresCommand;
+use MetaForge\Discord\Console\Commands\SyncDiscordRolesCommand;
 use MetaForge\Discord\Console\Commands\SyncForumRssToDiscordCommand;
+use MetaForge\Discord\Http\Middleware\VerifyDiscordBotRequest;
 use MetaForge\Discord\Listeners\QueueDiscordRoleSync;
 use MetaForge\Discord\Listeners\QueueForumDiscordCrosspost;
+use MetaForge\Discord\Listeners\QueueModerationDiscordNotification;
 use MetaForge\Discord\Listeners\QueueSupportTicketDiscordNotification;
 use MetaForge\Discord\Services\DiscordApiClient;
 use MetaForge\Discord\Services\DiscordInboundRoleSyncService;
@@ -22,11 +23,13 @@ use MetaForge\Discord\Services\DiscordMemberLookupService;
 use MetaForge\Discord\Services\DiscordNotificationPreferenceService;
 use MetaForge\Discord\Services\DiscordOutboundMessenger;
 use MetaForge\Discord\Services\DiscordStaffAccessService;
+use MetaForge\Discord\Services\DiscordSyncFailureService;
 use MetaForge\Discord\Services\ForumCrosspostService;
+use MetaForge\Discord\Services\ModerationEventExtractor;
+use MetaForge\Discord\Services\ModerationMirrorService;
 use MetaForge\Discord\Services\RoleSyncService;
 use MetaForge\Discord\Services\SupportTicketEventExtractor;
 use MetaForge\Discord\Services\SupportTicketMirrorService;
-use MetaForge\Discord\Services\DiscordSyncFailureService;
 use MetaForge\Discord\Services\WelcomeMessageService;
 use MetaForge\Discord\Support\DiscordGuildResolver;
 use Spatie\Permission\Events\RoleAttached;
@@ -46,6 +49,8 @@ class DiscordServiceProvider extends ServiceProvider
         $this->app->singleton(DiscordOutboundMessenger::class);
         $this->app->singleton(SupportTicketEventExtractor::class);
         $this->app->singleton(SupportTicketMirrorService::class);
+        $this->app->singleton(ModerationEventExtractor::class);
+        $this->app->singleton(ModerationMirrorService::class);
         $this->app->singleton(ForumCrosspostService::class);
         $this->app->singleton(WelcomeMessageService::class);
         $this->app->singleton(DiscordStaffAccessService::class);
@@ -78,6 +83,12 @@ class DiscordServiceProvider extends ServiceProvider
         foreach ((array) config('discord.support_ticket_event_classes', []) as $eventClass) {
             if (is_string($eventClass) && $eventClass !== '' && class_exists($eventClass)) {
                 Event::listen($eventClass, QueueSupportTicketDiscordNotification::class);
+            }
+        }
+
+        foreach ((array) config('discord.moderation_event_classes', []) as $eventClass) {
+            if (is_string($eventClass) && $eventClass !== '' && class_exists($eventClass)) {
+                Event::listen($eventClass, QueueModerationDiscordNotification::class);
             }
         }
 
